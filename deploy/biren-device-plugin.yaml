@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: biren-gpu
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: device-plugin-sa
+  namespace: biren-gpu
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: birentech-device-plugin
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - pods
+  verbs: ["get", "list", "watch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: birentech-device-plugin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: birentech-device-plugin
+subjects:
+- kind: ServiceAccount
+  name: device-plugin-sa
+  namespace: biren-gpu
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: biren-device-plugin-daemonset
+  namespace: biren-gpu
+spec:
+  selector:
+    matchLabels:
+      name: biren-device-plugin
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        name: biren-device-plugin
+        app.kubernetes.io/component: exporter
+        app.kubernetes.io/name: gpu-exporter
+    spec:
+      nodeSelector:
+        birentech.com: gpu
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - key: birentech.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      priorityClassName: "system-node-critical"
+      containers:
+      - image: ghcr.io/BirenTechnology/device-plugin:v0.7.0
+        name: k8s-device-plugin
+        env:
+          - name: LD_LIBRARY_PATH
+            value: /opt/birentech/lib
+        command: ["/root/k8s-device-plugin"]
+        args: ["--pulse", "300", "--container-runtime", "runc"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: dp
+            mountPath: /var/lib/kubelet/device-plugins
+          - name: sys
+            mountPath: /sys
+          - name: brml
+            mountPath: /opt/birentech/lib
+          - name: brsmi
+            mountPath: /opt/birentech/bin
+          - mountPath: /dev
+            name: device
+          - name: cdi-config
+            mountPath: /etc/cdi
+      serviceAccountName: device-plugin-sa
+      volumes:
+        - name: dp
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: brml
+          hostPath:
+            path: /usr/lib
+        - name: brsmi
+          hostPath:
+            path: /usr/bin
+        - name: device
+          hostPath:
+            path: /dev
+        - name: cdi-config
+          hostPath:
+            path: /etc/cdi
