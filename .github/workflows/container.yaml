@@ -1,0 +1,35 @@
+name: Build and Push OCI Image on Tag
+
+on:
+  push:
+    tags:
+      - '*'  # Trigger on any tag
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install podman
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GHCR_PAT }}" | podman login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
+
+      - name: Build OCI image
+        run: |
+          podman build -f deploy/Dockerfile -t ghcr.io/${{ github.repository }}:${{ github.ref_name }} .
+
+      - name: Push OCI image
+        run: |
+          podman push ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+
+      - name: Log out from GitHub Container Registry
+        run: |
+          podman logout ghcr.io
