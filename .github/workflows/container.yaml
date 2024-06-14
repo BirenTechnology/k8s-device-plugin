@@ -1,35 +1,74 @@
-name: Build and Push OCI Image on Tag
+name: Publish Docker image
 
 on:
-  push:
-    tags:
-      - '*'  # Trigger on any tag
+  release:
+    types: [published]
 
 jobs:
-  build:
+  push_to_registries:
+    name: Push Docker image to multiple registries
     runs-on: ubuntu-latest
-
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-      - name: Set up Podman
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install podman
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GHCR_PAT }}" | podman login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
+      - name: Check out the repo
+        uses: actions/checkout@v4
 
-      - name: Build OCI image
-        run: |
-          podman build -f deploy/Dockerfile -t ghcr.io/${{ github.repository }}:${{ github.ref_name }} .
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push OCI image
-        run: |
-          podman push ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+      - name: Extract metadata (tags, labels) for Docker - arm64
+        id: meta-arm64
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=auto
+            suffix=-arm64,onlatest=true
 
-      - name: Log out from GitHub Container Registry
-        run: |
-          podman logout ghcr.io
+      - name: Extract metadata (tags, labels) for Docker - x86_64
+        id: meta-x86_64
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+
+      - name: Build and push Docker images - arm64
+        id: push-arm64
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: deploy/Dockerfile
+          build-args: |
+            build_arch=arm64
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta-arm64.outputs.tags }}
+          labels: ${{ steps.meta-arm64.outputs.labels }}
+
+      - name: Build and push Docker images - x86_64
+        id: push-x86-64
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: deploy/Dockerfile
+          build-args: |
+            build_arch=amd64
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta-x86_64.outputs.tags }}
+          labels: ${{ steps.meta-x86_64.outputs.labels }}

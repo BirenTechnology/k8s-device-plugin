@@ -1,5 +1,7 @@
 # Biren GPU Device plugin
 
+![GitHub License](https://img.shields.io/github/license/BirenTechnology/k8s-device-plugin) ![GitHub Release](https://img.shields.io/github/v/release/BirenTechnology/k8s-device-plugin) [![Publish Docker image](https://github.com/BirenTechnology/k8s-device-plugin/actions/workflows/container.yaml/badge.svg)](https://github.com/BirenTechnology/k8s-device-plugin/actions/workflows/container.yaml)
+
 ## About
 The Biren GPU device plugin is as Daemonset that allows you to automatically:
 

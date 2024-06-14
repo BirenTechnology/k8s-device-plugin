@@ -5,7 +5,6 @@ ARG build_arch
 COPY . /src
 WORKDIR /src
 
-RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN if [ "$build_arch" = "arm64" ]; then  \
       make build-arm ; \
     else  \

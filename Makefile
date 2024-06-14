@@ -1,5 +1,5 @@
 REPO ?= ghcr.io/BirenTechnology
-PROJECT ?= device-plugin
+PROJECT ?= k8s-device-plugin
 BUILD_ENV?=GOPROXY=direct
 tag=$(shell git describe --abbrev=0 --tags)
 VERSION=$(shell git describe --tags --always)
@@ -8,7 +8,7 @@ image-build:
 	docker build --build-arg build_arch=amd64 -t $(REPO)/$(PROJECT):$(VERSION) -f deploy/Dockerfile . 
 
 image-build-arm:
-	docker build --build-arg build_arch=arm64 -t $(REPO)/$(PROJECT):$(VERSION)-arm -f deploy/Dockerfile .
+	docker build --build-arg build_arch=arm64 -t $(REPO)/$(PROJECT):$(VERSION)-arm64 -f deploy/Dockerfile .
 
 push:
 	docker push $(REPO)/$(PROJECT):$(VERSION)
