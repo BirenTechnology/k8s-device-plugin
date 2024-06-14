@@ -65,7 +65,7 @@ spec:
         effect: NoSchedule
       priorityClassName: "system-node-critical"
       containers:
-      - image: ghcr.io/birentechnology/device-plugin:v0.7.0
+      - image: ghcr.io/birentechnology/k8s-device-plugin:v0.7.1
         name: k8s-device-plugin
         env:
           - name: LD_LIBRARY_PATH
