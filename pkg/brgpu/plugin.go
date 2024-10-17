@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 package brgpu
 
 import (
@@ -192,7 +191,7 @@ func (p *Plugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListA
 		}
 		tg, err := Device2Graph(devIDs)
 		if err != nil {
-			log.Errorf("Generate gpu topo error,%v", err)
+			log.Errorf("Generate gpu %v topo error %v", devIDs, err)
 		}
 		p.TopoGraph = tg
 	}

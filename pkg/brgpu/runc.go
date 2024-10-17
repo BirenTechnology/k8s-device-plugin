@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 package brgpu
 
 import (
@@ -89,14 +88,14 @@ func (d DevicesInfoList) getResourceByCardId(cardId string) string {
 func (bgm *brGPUManager) runcManager(pulse int, mountAllDev bool, mountDriDevice bool) {
 	err := brml.Init()
 	if err != nil {
-		log.Error(err)
+		log.Errorf("brml init failed %v", err)
 		bgm.Stop <- true
 	}
 	defer brml.Shutdown()
 
-	info, err := deviceDiscover()
+	info, err := DeviceDiscover()
 	if err != nil {
-		log.Error(err)
+		log.Errorf("runc device discover failed: %v", err)
 		bgm.Stop <- true
 	}
 	l := Lister{
@@ -133,33 +132,37 @@ func (bgm *brGPUManager) runcManager(pulse int, mountAllDev bool, mountDriDevice
 
 	err = bgm.generateCdiConfigFile(RuntimeRunc)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("runc generate cdi config failed %v", err)
 		bgm.Stop <- true
 	}
 
 	manager.Run()
 }
 
-func deviceDiscover() (DevicesInfoList, error) {
+func DeviceDiscover() (DevicesInfoList, error) {
 	dis := DevicesInfoList{}
 	physicalNum, err := brml.DeviceCount()
 	if err != nil {
+		log.Errorf("brml device count err: %v", err)
 		return nil, err
 	}
 
 	for i := 0; i < physicalNum; i++ {
-		device, err := brml.HandleByNodeID(i)
+		log.Infof("discovering device node id %v/%v", i, physicalNum)
+		device, err := brml.HandleByIndex(i)
 		if err != nil {
+			log.Errorf("brml HandleByIndex %v err: %v", i, err)
 			return nil, err
 		}
 		sviCount, err := brml.GetSviMode(device)
 		if err != nil {
+			log.Errorf("brml GetSviMode %v err: %v", device, err)
 			return nil, err
 		}
 
 		phyUUID, err := brml.DeviceUUID(device)
-
 		if err != nil {
+			log.Errorf("brml DeviceUUID %v err: %v", device, err)
 			return nil, err
 		}
 
@@ -169,11 +172,13 @@ func deviceDiscover() (DevicesInfoList, error) {
 		case 0, 1:
 			memInfo, err := brml.MemoryInfo(device)
 			if err != nil {
+				log.Errorf("brml MemoryInfo %v err: %v", device, err)
 				return nil, err
 			}
 
 			id, err := brml.GetGPUNodeIds(device)
 			if err != nil {
+				log.Errorf("brml GetGPUNodeIds %v err: %v", device, err)
 				return nil, err
 			}
 
@@ -196,16 +201,19 @@ func deviceDiscover() (DevicesInfoList, error) {
 			for j := 0; j < sviCount; j++ {
 				ins, err := brml.GetGPUInstanceByID(device, uint32(j))
 				if err != nil {
+					log.Errorf("brml GetGPUInstanceByID %v/%v err: %v", device, j, err)
 					return nil, err
 				}
 
 				mem, err := brml.MemoryInfo(ins)
 				if err != nil {
+					log.Errorf("brml MemoryInfo %v err: %v", ins, err)
 					return nil, err
 				}
 
 				id, err := brml.GetGPUNodeIds(ins)
 				if err != nil {
+					log.Errorf("brml GetGPUNodeIds %v err: %v", ins, err)
 					return nil, err
 				}
 

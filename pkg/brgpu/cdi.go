@@ -49,7 +49,7 @@ func cdiSPec(runtime ContainerRuntime) ([]*cdi.Spec, error) {
 }
 
 func runcCDI() ([]*cdi.Spec, error) {
-	info, err := deviceDiscover()
+	info, err := DeviceDiscover()
 	if err != nil {
 		log.Errorf("deviceDiscover error: %v", err)
 		return nil, err
@@ -182,7 +182,7 @@ func generateConfigCdiFile(runtime ContainerRuntime) error {
 	}
 	exists, err := PathExists(cdiConfigPath)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("cdiconfig path %v", err)
 		return err
 	}
 	// 如果文件存在并且不需要覆盖写 直接返回
